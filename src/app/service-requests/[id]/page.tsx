@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Image from "next/image";
 import React from "react";
+import { compressImages, isValidImageFormat, formatFileSize } from "../../utils/imageCompressor";
 
 
 interface Customer {
@@ -47,6 +48,7 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
 
   // const { id } = use(params); 
   const [notes, setNotes] = useState<string>("");
+  const [srNumber, setSrNumber] = useState<string>("");
 
 
   const [jenis, setJenis] = useState("");
@@ -64,6 +66,8 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>([]);
   const [deletedPhotoIds, setDeletedPhotoIds] = useState<number[]>([]);
   const [inspectionDate, setInspectionDate] = useState(""); // ✅ baru ditambah
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState(false);
 
   const customerOptions = customers.map((cust) => ({
     value: cust.id,
@@ -124,6 +128,7 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
         );
         
         setNotes(data.notes || "");
+        setSrNumber(data.sr_number || "");
     //    setInspectionDate(data.inspection_date || ""); // ✅ set tanggal
     if (data.inspection_date) {
       const date = new Date(data.inspection_date);
@@ -141,6 +146,7 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
             (data.damages as { id: number }[]).map((d) => d.id.toString())
           );
         }
+        
         if (data?.photos) {
           setExistingPhotos(data.photos); // misal [{id: 1, url: "..."}]
         }
@@ -169,15 +175,61 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
     };
 
 
-    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
   
-      const previews = files.map((file) => URL.createObjectURL(file));
-       console.log("files dari input:", files);
+      // Reset error state
+      setUploadError(null);
   
-      setSelectedFiles(files);
+      // Validate file formats
+      const acceptedFormats = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const invalidFiles = files.filter(file => !isValidImageFormat(file, acceptedFormats));
       
-      setPhotos((prev) => [...prev, ...previews]);
+      if (invalidFiles.length > 0) {
+        setUploadError(`Format file tidak valid: ${invalidFiles.map(f => f.name).join(', ')}. Gunakan format JPG, PNG, WEBP, atau GIF.`);
+        return;
+      }
+  
+      // Check total file count
+      if (photos.length + files.length > 10) {
+        setUploadError('Maksimal 10 foto yang dapat diupload.');
+        return;
+      }
+  
+      setCompressing(true);
+  
+      try {
+        // Compress images (max 1MB, max 1920px)
+        const compressedResults = await compressImages(files, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          maxSizeMB: 1,
+          quality: 0.8
+        });
+  
+        // Get compressed files
+        const compressedFiles = compressedResults.map(r => r.file);
+        
+        // Log compression stats
+        compressedResults.forEach(r => {
+          console.log(`Compressed ${r.file.name}: ${formatFileSize(r.originalSize)} → ${formatFileSize(r.compressedSize)}`);
+        });
+  
+        // Create preview URLs
+        const previews = compressedFiles.map((file) => URL.createObjectURL(file));
+  
+        setSelectedFiles((prev) => [...prev, ...compressedFiles]);
+        setPhotos((prev) => [...prev, ...previews]);
+        
+      } catch (error) {
+        console.error("Error compressing images:", error);
+        setUploadError(error instanceof Error ? error.message : 'Gagal memproses gambar. Silakan coba lagi.');
+      } finally {
+        setCompressing(false);
+        // Reset input so same file can be selected again
+        e.target.value = '';
+      }
     };
 
     // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,6 +260,7 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
   
       const formData = new FormData();
       formData.append("jenis", jenis);
+      formData.append("sr_number", srNumber);
       formData.append("customer_id", selectedCustomer?.value?.toString() || "");
       formData.append("vehicle_id", selectedVehicle?.value?.toString() || "");
       formData.append("inspection_date", inspectionDate); // ✅ kirim inspection_date
@@ -264,6 +317,8 @@ const handleRemoveKerusakan = (index: number) => {
   setKerusakan(newKerusakan);
 };
 const handleRemovePhoto = (index: number) => {
+  // Cleanup the object URL to prevent memory leaks
+  URL.revokeObjectURL(photos[index]);
   setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   setPhotos((prev) => prev.filter((_, i) => i !== index));
 };
@@ -277,6 +332,18 @@ const handleRemovePhoto = (index: number) => {
     <h1 className="text-xl font-bold mb-4">Edit Service Request</h1>
 
     <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* SR Number (readonly) */}
+      <div>
+        <label className="block font-medium mb-1">SR Number</label>
+        <input
+          type="text"
+          value={srNumber}
+          readOnly
+          className="w-full border px-3 py-2 rounded bg-gray-100"
+          placeholder="(Not assigned)"
+        />
+      </div>
+
       {/* Jenis */}
       <div>
         <label className="block font-medium mb-1">Jenis</label>
@@ -412,14 +479,51 @@ const handleRemovePhoto = (index: number) => {
   {/* Foto baru */}
     {/* Upload File */}
     <div>
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-400 rounded-xl cursor-pointer hover:bg-blue-50 transition">
-        <span className="text-blue-600 font-medium">+ Upload Foto</span>
+      {/* Error message */}
+      {uploadError && (
+        <div className="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+          <span className="font-medium">Error:</span> {uploadError}
+        </div>
+      )}
+      
+      <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition ${compressing ? 'border-gray-300 bg-gray-50' : 'border-blue-400 hover:bg-blue-50'}`}>
+        {compressing ? (
+          <div className="flex flex-col items-center">
+            <svg
+              className="animate-spin h-8 w-8 text-blue-600 mb-2"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+            <span className="text-gray-500 text-sm">Mengompres foto...</span>
+          </div>
+        ) : (
+          <>
+            <span className="text-blue-600 font-medium">+ Upload Foto</span>
+            <span className="text-gray-400 text-xs mt-1">JPG, PNG, WEBP (Max 10 foto)</span>
+          </>
+        )}
         <input
           type="file"
           multiple
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={handleUpload}
           className="hidden"
+          disabled={compressing}
         />
       </label>
       {photos.length > 0 && (

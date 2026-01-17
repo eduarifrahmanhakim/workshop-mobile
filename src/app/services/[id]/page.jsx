@@ -22,6 +22,8 @@ export default function SPKDetail({ params }) {
 
   const [selectedDamages, setSelectedDamages] = useState([]); // data after yang ditambahkan user
   const [existingBeforePhotos, setExistingBeforePhotos] = useState([]);
+  const [afterDamages, setAfterDamages] = useState([]); // list after damages dari API
+  const [deletedAfterDamageIds, setDeletedAfterDamageIds] = useState([]); // Track deleted damage IDs
 
   const [existingAfterPhotos, setExistingAfterPhotos] = useState([]);
   const [deletedAfterPhotoIds, setDeletedAfterPhotoIds] = useState([]); // Track deleted photo IDs
@@ -32,6 +34,7 @@ export default function SPKDetail({ params }) {
   const [uploadError, setUploadError] = useState(null);
   const [compressing, setCompressing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [offerNumber, setOfferNumber] = useState("");
     
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -99,6 +102,8 @@ export default function SPKDetail({ params }) {
           if (!res.ok) throw new Error("Gagal ambil data service");
           const data = await res.json();
           setDetail(data.data);
+          // set offer number for display
+          setOfferNumber(data.data?.offer_number || "");
 
           if (data.data?.before_photos) {
             // console.log('kesini');
@@ -107,6 +112,9 @@ export default function SPKDetail({ params }) {
           }
           if (data.data?.after_photos) {
             setExistingAfterPhotos(data.data.after_photos);
+          }
+          if (data.data?.afterdamages) {
+            setAfterDamages(data.data.afterdamages);
           }
         } catch (err) {
           console.error(err);
@@ -164,6 +172,13 @@ export default function SPKDetail({ params }) {
         });
       }
 
+      // append deleted after damage IDs to inform backend
+      if (deletedAfterDamageIds.length > 0) {
+        deletedAfterDamageIds.forEach((damageId) => {
+          formData.append("deleted_after_damage_ids[]", damageId);
+        });
+      }
+
       // append kerusakan after
       selectedDamages.forEach((dmg, i) => {
         if (dmg) {
@@ -196,7 +211,9 @@ export default function SPKDetail({ params }) {
         setAfterNotes("");
         setSelectedFiles([]);
         setDeletedAfterPhotoIds([]);
+        setDeletedAfterDamageIds([]);
         setExistingAfterPhotos(data.after_photos || []);
+        setAfterDamages(data.after_damages || []);
       } catch (err) {
         console.error(err);
         setUploadError(err.message || 'Gagal menyimpan. Silakan coba lagi.');
@@ -254,6 +271,12 @@ export default function SPKDetail({ params }) {
     setExistingAfterPhotos((prev) => prev.filter((p) => p.id !== photoId));
   };
 
+  // Handle remove existing after damage - marks for deletion and removes from UI
+  const handleRemoveAfterDamage = (damageId) => {
+    setDeletedAfterDamageIds((prev) => [...prev, damageId]);
+    setAfterDamages((prev) => prev.filter((d) => d.id !== damageId));
+  };
+
   // Handle remove new photo preview (not yet saved)
   const handleRemovePhoto = (index) => {
     // Cleanup the object URL to prevent memory leaks
@@ -289,6 +312,10 @@ export default function SPKDetail({ params }) {
             <div>
               <p className="text-gray-500">Customer</p>
               <p className="font-medium">{data.customer.name}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Offer Number</p>
+              <p className="font-medium">{offerNumber || data.offer_number || '-'}</p>
             </div>
             <div>
               <p className="text-gray-500">Vehicle</p>
@@ -357,12 +384,34 @@ export default function SPKDetail({ params }) {
           {/* Notes */}
           {data?.beforedamages && data.beforedamages.length > 0 && (
             <div>
-              <p className="text-gray-500 mb-1">Kerusakan</p>
+              <p className="text-gray-500 mb-1">Kerusakan (Before)</p>
               <ul className="list-disc list-inside text-gray-700">
                 {data.beforedamages.map((item, index) => (
                   <li key={index}>{item.damage?.name || '-'}</li>
                 ))}
               </ul>
+            </div>
+          )}
+          
+          {/* List Kerusakan After dari API */}
+          {afterDamages && afterDamages.length > 0 && (
+            <div>
+              <p className="text-gray-500 mb-1">Kerusakan (After)</p>
+              <div className="space-y-2">
+                {afterDamages.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                    <span className="text-gray-700">{item.damage?.name || item.damage_name || '-'}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAfterDamage(item.id)}
+                      className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow hover:bg-red-600"
+                      title="Hapus kerusakan"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
