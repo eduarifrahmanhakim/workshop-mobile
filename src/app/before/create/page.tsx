@@ -172,6 +172,10 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
       const res = await fetch("/api/service-requests", {
         method: "POST",
         body: formData,
+        headers: {
+          Accept: "application/json",
+        },
+        credentials: "include",
       });
 
       const data = await res.json();

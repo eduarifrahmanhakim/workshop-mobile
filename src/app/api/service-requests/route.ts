@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       headers: {
         "Accept": "application/json",
         // "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       credentials: "include",
     });
