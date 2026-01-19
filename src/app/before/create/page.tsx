@@ -59,6 +59,7 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [toast, setToast] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
  
 
 
@@ -142,6 +143,7 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingSubmit(true);
+    setSubmitError(null); // Reset error state
 
 
      const formData = new FormData();
@@ -179,11 +181,20 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
       });
 
       const data = await res.json();
+      
+      // Check if response is not ok
+      if (!res.ok) {
+        console.error("Server error:", data);
+        setSubmitError(data.message || data.error || `Error ${res.status}: Gagal membuat service request`);
+        return;
+      }
+      
       setSrNumber(data.sr_number);
       setPopupOpen(true);
      // console.log("Response:", data);
     } catch (err) {
       console.error("Error submit:", err);
+      setSubmitError(err instanceof Error ? err.message : "Terjadi kesalahan. Silakan coba lagi.");
     }finally {
       setLoadingSubmit(false);
     }
@@ -269,7 +280,24 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
   }
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow flex flex-col">
-      <h1 className="text-xl font-bold mb-4">Create Before</h1>    {/* Bro tolong bagusin button nya dong secara UI/UX */}
+      <h1 className="text-xl font-bold mb-4">Create Before</h1>
+
+      {/* Submit Error Message */}
+      {submitError && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="flex items-center">
+            <span className="font-medium mr-2">❌ Error:</span>
+            <span>{submitError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSubmitError(null)}
+            className="mt-2 text-sm text-red-600 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Jenis */}

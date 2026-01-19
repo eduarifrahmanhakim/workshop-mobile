@@ -6,13 +6,18 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
 });
 
-const nextConfig = withPWA({
+const nextConfig: NextConfig = withPWA({
   reactStrictMode: true,
   images: {
-    domains: ["workshop-app.test","dev.mtikarawang.com","mtikarawang.com","mobile.mtikarawang.com"], // 🧩 tambahkan domain backend kamu
+    domains: ["workshop-app.test","dev.mtikarawang.com","mtikarawang.com","mobile.mtikarawang.com"],
     unoptimized: true,
   },
-  
+  // Server Actions dan API Routes body size limit
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 });
 
 module.exports = nextConfig;

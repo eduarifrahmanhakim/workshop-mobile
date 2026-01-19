@@ -1,6 +1,11 @@
-// app/api/before/route.ts
+// app/api/service-requests/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+
+// Runtime config untuk App Router
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   req: NextRequest,

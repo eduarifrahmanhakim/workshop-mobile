@@ -1,35 +1,27 @@
-// app/api/before/route.ts
-import { NextResponse } from "next/server";
+// app/api/service-requests/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-// Config untuk meningkatkan batas ukuran body (10MB)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
-
-// Untuk App Router, gunakan runtime config
+// Untuk App Router, gunakan runtime config (BUKAN export const config)
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds timeout
+export const dynamic = 'force-dynamic'; // Disable caching for this route
 
 // GET list
 export async function GET() {
+  const API = process.env.NEXT_PUBLIC_API_BASE;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  
   try {
-    const API = process.env.NEXT_PUBLIC_API_BASE; // http://workshop-app.test
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
     const res = await fetch(`${API}/api/service-requests`, {
       method: "GET",
       headers: {
         "Accept": "application/json",
-            "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }), 
-            // kalau perlu auth token/cookie tambahin di sini
-        },
-        credentials: "include", // aktifin ini kalau pakai Sanctum cookie
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      cache: "no-store",
     });
 
     const data = await res.json();
@@ -44,18 +36,28 @@ export async function GET() {
 }
 
 // POST create
-export async function POST(req: Request) {
-   const API = process.env.NEXT_PUBLIC_API_BASE; // http://workshop-app.test
-   const cookieStore = await cookies();
-   const token = cookieStore.get("token")?.value;
+export async function POST(req: NextRequest) {
+  console.log("POST /api/service-requests started");
+  const API = process.env.NEXT_PUBLIC_API_BASE;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  
+  // Log untuk debugging production
+  console.log("API Base:", API);
+  console.log("Token exists:", !!token);
+  
   try {
     const formData = await req.formData();
 
     // Log form data untuk debugging
-    console.log('Uploading files...');
+    console.log('Processing form data...');
     for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: ${value.name} (${(value.size / 1024 / 1024).toFixed(2)} MB)`);
+      // Check if value is a Blob/File using duck typing (compatible with Node.js)
+      if (value && typeof value === 'object' && 'name' in value && 'size' in value) {
+        const file = value as { name: string; size: number };
+        console.log(`${key}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      } else {
+        console.log(`${key}: ${value}`);
       }
     }
 
@@ -64,10 +66,8 @@ export async function POST(req: Request) {
       body: formData,
       headers: {
         "Accept": "application/json",
-        // "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      credentials: "include",
     });
 
     const data = await res.json();
@@ -81,9 +81,17 @@ export async function POST(req: Request) {
       );
     }
 
+    console.log("Service request created successfully");
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error("API Error:", error);
+    
+    // Detailed error logging
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     
     // Handle specific errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -94,7 +102,7 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json(
-      { message: "Gagal membuat service request. Silakan coba lagi." },
+      { message: "Gagal membuat service request. Silakan coba lagi.", error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

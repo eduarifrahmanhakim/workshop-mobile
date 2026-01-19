@@ -96,8 +96,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     // Log form data untuk debugging
     console.log(`Updating service ${id}...`);
     for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: ${value.name} (${(value.size / 1024 / 1024).toFixed(2)} MB)`);
+      // Check if value is a Blob/File using duck typing (compatible with Node.js)
+      if (value && typeof value === 'object' && 'name' in value && 'size' in value) {
+        const file = value as { name: string; size: number };
+        console.log(`${key}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
       } else {
         console.log(`${key}: ${value}`);
       }
