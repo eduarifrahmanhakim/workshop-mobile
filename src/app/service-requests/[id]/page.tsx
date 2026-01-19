@@ -68,6 +68,9 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
   const [inspectionDate, setInspectionDate] = useState(""); // ✅ baru ditambah
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const customerOptions = customers.map((cust) => ({
     value: cust.id,
@@ -257,7 +260,11 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-  
+      // Start updating
+      setUpdating(true);
+      setUpdateError(null);
+      setSuccessMessage(null);
+
       const formData = new FormData();
       formData.append("jenis", jenis);
       formData.append("sr_number", srNumber);
@@ -272,29 +279,26 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
       
       deletedPhotoIds.forEach(id => formData.append("deleted_photos[]", id.toString()));
 
-     // console.log(formData.entries())
-  //    for (let [key, value] of formData.entries()) {
-  //     console.log(key, value);
-  //   }
-  //     // Debug isi formData
-  // for (let pair of formData.entries()) {
-  //   console.log(pair[0], pair[1]);
-  // }
-    
       try {
         const res = await fetch(`/api/service-requests/${id}`, {
-          method: "POST", // kalau Laravel lo pake method spoofing `_method=PUT`
+          method: "POST",
           body: formData,
         });
-     //   console.log('kesini');
-        const data = await res.json(); 
-        // console.log("CLIENT RECEIVED:", data); //kesini keluar validasi nya
+        const data = await res.json();
 
         if (!res.ok) throw new Error(data.message || "Failed to update");
-        //return false;
-        router.push("/before"); // redirect balik
-      } catch (err) {
+
+        // show success message and redirect shortly
+        setSuccessMessage("Update berhasil. Mengalihkan...");
+        setTimeout(() => {
+          router.push("/before");
+        }, 1100);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
         console.error("Update failed:", err);
+        setUpdateError(message || 'Gagal update');
+      } finally {
+        setUpdating(false);
       }
     };
   
@@ -332,6 +336,27 @@ const handleRemovePhoto = (index: number) => {
     <h1 className="text-xl font-bold mb-4">Edit Service Request</h1>
 
     <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Success / Error messages */}
+      {successMessage && (
+        <div className="mb-2 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879A1 1 0 103.293 9.293l4 4a1 1 0 001.414 0l8-8z" clipRule="evenodd" />
+            </svg>
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
+      {updateError && (
+        <div className="mb-2 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11V5a1 1 0 10-2 0v2a1 1 0 102 0zm0 6a1 1 0 10-2 0 1 1 0 002 0z" clipRule="evenodd" />
+            </svg>
+            <span className="font-medium">{updateError}</span>
+          </div>
+        </div>
+      )}
       {/* SR Number (readonly) */}
       <div>
         <label className="block font-medium mb-1">SR Number</label>
@@ -567,9 +592,20 @@ const handleRemovePhoto = (index: number) => {
 
       <button
         type="submit"
-        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+        disabled={updating}
+        className={`w-full py-2 rounded-lg text-white transition ${updating ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
       >
-        Update
+        {updating ? (
+          <div className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            Menyimpan...
+          </div>
+        ) : (
+          'Update'
+        )}
       </button>
     </form>
   </div>

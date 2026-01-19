@@ -104,6 +104,8 @@ export default function SPKDetail({ params }) {
           setDetail(data.data);
           // set offer number for display
           setOfferNumber(data.data?.offer_number || "");
+          // set notes_after into textarea
+          setAfterNotes(data.data?.notes_after || "");
 
           if (data.data?.before_photos) {
             // console.log('kesini');
