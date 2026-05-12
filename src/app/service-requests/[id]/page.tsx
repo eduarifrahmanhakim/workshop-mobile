@@ -195,8 +195,8 @@ export default function EditServiceRequest({ params }: { params: Promise<{ id: s
       }
   
       // Check total file count
-      if (photos.length + files.length > 10) {
-        setUploadError('Maksimal 10 foto yang dapat diupload.');
+      if (photos.length + files.length > 50) {
+        setUploadError('Maksimal 50 foto yang dapat diupload.');
         return;
       }
   
@@ -539,7 +539,7 @@ const handleRemovePhoto = (index: number) => {
         ) : (
           <>
             <span className="text-blue-600 font-medium">+ Upload Foto</span>
-            <span className="text-gray-400 text-xs mt-1">JPG, PNG, WEBP (Max 10 foto)</span>
+            <span className="text-gray-400 text-xs mt-1">JPG, PNG, WEBP (Max 50 foto)</span>
           </>
         )}
         <input

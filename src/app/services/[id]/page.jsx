@@ -54,8 +54,8 @@ export default function SPKDetail({ params }) {
 
     // Check total file count (existing + new)
     const totalPhotos = existingAfterPhotos.length + photos.length + files.length;
-    if (totalPhotos > 10) {
-      setUploadError('Maksimal 10 foto yang dapat diupload.');
+    if (totalPhotos > 50) {
+      setUploadError('Maksimal 50 foto yang dapat diupload.');
       return;
     }
 
@@ -482,7 +482,7 @@ export default function SPKDetail({ params }) {
         ) : (
           <>
             <span className="text-blue-600 font-medium">+ Upload Foto After</span>
-            <span className="text-gray-400 text-xs mt-1">JPG, PNG, WEBP (Max 10 foto)</span>
+            <span className="text-gray-400 text-xs mt-1">JPG, PNG, WEBP (Max 50 foto)</span>
           </>
         )}
         <input

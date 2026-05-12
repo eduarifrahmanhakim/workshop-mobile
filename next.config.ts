@@ -15,7 +15,7 @@ const nextConfig: NextConfig = withPWA({
   // Server Actions dan API Routes body size limit
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '50mb',
     },
   },
 });
