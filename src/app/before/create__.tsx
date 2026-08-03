@@ -15,9 +15,7 @@ const BeforeCreate: React.FC = () => {
   };
 
   const addKerusakan = () => {
-    if (kerusakan.length < 10) {
-      setKerusakan([...kerusakan, ""]);
-    }
+    setKerusakan([...kerusakan, ""]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -101,15 +99,13 @@ const BeforeCreate: React.FC = () => {
               placeholder={`Kerusakan ${index + 1}`}
             />
           ))}
-          {kerusakan.length < 10 && (
-            <button
-              type="button"
-              onClick={addKerusakan}
-              className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
-            >
-              + Add Kerusakan
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={addKerusakan}
+            className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
+          >
+            + Add Kerusakan
+          </button>
         </div>
 
         {/* Upload File */}

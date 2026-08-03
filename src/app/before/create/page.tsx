@@ -135,9 +135,7 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
       
 
   const addKerusakan = () => {
-    if (kerusakan.length < 10) {
-      setKerusakan([...kerusakan, ""]);
-    }
+    setKerusakan([...kerusakan, ""]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -399,15 +397,13 @@ const [loadingSubmit, setLoadingSubmit] = useState(false);
 
 
 
-      {kerusakan.length < 10 && (
-        <button
-          type="button"
-          onClick={addKerusakan}
-          className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
-        >
-          + Tambah Kerusakan
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={addKerusakan}
+        className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
+      >
+        + Tambah Kerusakan
+      </button>
     </div>
 
 

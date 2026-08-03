@@ -13,7 +13,8 @@ interface ServiceRequest {
   sr_number: string;    // nomor service request
   customer_name?: string; // opsional
   vehicle_name?: string;  // opsional
-  [key: string]: string | number | undefined; // ✔ tipe lebih spesifik
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 // Icon components - tambahkan di bagian atas file
@@ -85,9 +86,9 @@ export default function BeforePage() {
         // tampilkan error dari Laravel
         console.log(data.message);
 
-        toast.error(data.message || "Failed to delete service request"); 
+        toast.error(data.message || "Failed to delete service request");
         return;
-      } 
+      }
       toast.success("Service Request berhasil dihapus");
       setBefore((prev) => prev.filter((item) => item.id !== id)); //disini merah bro
     } catch (error) {
@@ -109,7 +110,7 @@ export default function BeforePage() {
         if (!res.ok) throw new Error("Failed to fetch before data");
 
         const data = await res.json();
-  
+
         // asumsi backend return { data: [...] }
         setBefore(data);
 
@@ -123,9 +124,11 @@ export default function BeforePage() {
     fetchBefore();
   }, []);
 
-const filteredBefore = before.filter((item) =>
-    item.sr_number.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredBefore = before.filter((item) => {
+    const q = search.toLowerCase();
+    const plate = ((item.vehicle?.license_plate || item.vehicle?.plate || "") as string).toLowerCase();
+    return item.sr_number.toLowerCase().includes(q) || plate.includes(q);
+  });
 
   if (loading) return <p className="p-4">Loading...</p>;
 
@@ -139,7 +142,7 @@ const filteredBefore = before.filter((item) =>
       </header>
 
 
-     <div className="flex justify-end">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => router.push("/before/create")}
@@ -152,136 +155,136 @@ const filteredBefore = before.filter((item) =>
         <h2 className="text-base font-semibold">Before List</h2>
 
         {/* Search */}
-   <div className="relative w-full max-w-md mx-auto mb-4">
-  <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
- 
-  </span>
-    <input
-        type="text"
-        placeholder="Cari nomor Service Request (Before)..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
-    />
-    </div>
+        <div className="relative w-full max-w-md mx-auto mb-4">
+          <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
 
-
-      {/* List SPK */}
-<div className="space-y-4">
-  {filteredBefore.length > 0 ? (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filteredBefore.map((item: any, index) => (
-      <div
-        key={item.id}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
-      >
-        {/* Header dengan nomor urut dan SR Number */}
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-gray-50 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-semibold text-sm shadow-sm">
-              {index + 1}
-            </span>
-            <div>
-              <h3 className="font-bold text-gray-900 text-lg">{item.sr_number}</h3>
-              <p className="text-sm text-gray-600 mt-0.5">Service Request</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-              Active
-            </span>
-          </div>
+          </span>
+          <input
+            type="text"
+            placeholder="Cari nomor SR atau plat nomor..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+          />
         </div>
 
-        {/* Informasi Detail */}
-        <div className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Info Customer */}
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <UserIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs font-medium text-gray-500">Customer</p>
-                  <p className="text-sm text-gray-800 font-medium">
-                    {item.customer?.name || "-"}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <CarIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs font-medium text-gray-500">License Plate</p>
-                  <p className="text-sm text-gray-800 font-medium">
-                    {item.vehicle?.license_plate || "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {/* Info Tanggal */}
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <CalendarIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs font-medium text-gray-500">Inspection Date</p>
-                  <p className="text-sm text-gray-800 font-medium">
-                    {new Date(item.inspection_date).toLocaleString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).replace(".", ":")}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Tambahan info lain jika ada */}
-              {item.vehicle?.model && (
-                <div className="flex items-start gap-2">
-                  <InfoIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Vehicle Model</p>
-                    <p className="text-sm text-gray-800 font-medium">
-                      {item.vehicle.model}
-                    </p>
+        {/* List SPK */}
+        <div className="space-y-4">
+          {filteredBefore.length > 0 ? (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            filteredBefore.map((item: any, index) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+              >
+                {/* Header dengan nomor urut dan SR Number */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-gray-50 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-semibold text-sm shadow-sm">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">{item.sr_number}</h3>
+                      <p className="text-sm text-gray-600 mt-0.5">Service Request</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                      Active
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-3 border-t border-gray-100">
-            <button
-              onClick={() => router.push(`/service-requests/${item.id}`)}
-              className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium text-sm transition-colors duration-200 shadow-sm"
-            >
-              <EditIcon className="w-4 h-4" />
-              Update
-            </button>
-            <button
-              onClick={() => handleDelete(item.id)}
-              className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg font-medium text-sm transition-colors duration-200 shadow-sm"
-            >
-              <TrashIcon className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
+                {/* Informasi Detail */}
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Info Customer */}
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <UserIcon className="w-4 h-4 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Customer</p>
+                          <p className="text-sm text-gray-800 font-medium">
+                            {item.customer?.name || "-"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <CarIcon className="w-4 h-4 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">License Plate</p>
+                          <p className="text-sm text-gray-800 font-medium">
+                            {item.vehicle?.license_plate || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info Tanggal */}
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <CalendarIcon className="w-4 h-4 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Inspection Date</p>
+                          <p className="text-sm text-gray-800 font-medium">
+                            {new Date(item.inspection_date).toLocaleString("id-ID", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }).replace(".", ":")}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Tambahan info lain jika ada */}
+                      {item.vehicle?.model && (
+                        <div className="flex items-start gap-2">
+                          <InfoIcon className="w-4 h-4 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-medium text-gray-500">Vehicle Model</p>
+                            <p className="text-sm text-gray-800 font-medium">
+                              {item.vehicle.model}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => router.push(`/service-requests/${item.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium text-sm transition-colors duration-200 shadow-sm"
+                    >
+                      <EditIcon className="w-4 h-4" />
+                      Update
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg font-medium text-sm transition-colors duration-200 shadow-sm"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <SearchIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 font-medium">No Service Requests Found</p>
+              <p className="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
+            </div>
+          )}
         </div>
-      </div>
-    ))
-  ) : (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-        <SearchIcon className="w-8 h-8 text-gray-400" />
-      </div>
-      <p className="text-gray-500 font-medium">No Service Requests Found</p>
-      <p className="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
-    </div>
-  )}
-</div>
 
       </section>
     </main>
